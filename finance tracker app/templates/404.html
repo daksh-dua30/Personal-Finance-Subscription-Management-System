@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex flex-col items-center justify-center text-center p-6">
+    <div class="w-16 h-16 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-2xl mb-4">
+        <i class="fa-solid fa-compass"></i>
+    </div>
+    <h1 class="text-4xl font-extrabold text-white font-mono tracking-tight">404</h1>
+    <h2 class="text-lg font-bold text-slate-300 mt-2">Resource or Page Not Found</h2>
+    <p class="text-xs text-slate-500 mt-1 max-w-sm">The route you requested does not correspond to any active endpoint in this application.</p>
+    <a href="{{ url_for('dashboard') }}" class="mt-6 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg transition-all">
+        Return to Dashboard
+    </a>
+</div>
+{% endblock %}
+

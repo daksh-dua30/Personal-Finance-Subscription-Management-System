@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Monthly Financial Statement & Analytics{% endblock %}
+{% block header_title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Period Selector & Export Actions -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-bold text-white tracking-tight">Monthly Financial Statement</h2>
+            <p class="text-xs text-slate-400">Comprehensive breakdown of your monthly income, spending, and savings.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Period Selector -->
+            <form method="GET" action="{{ url_for('reports') }}" class="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800">
+                <select name="month" onchange="this.form.submit()" class="bg-slate-800 border-none text-xs text-white rounded-lg px-2.5 py-1.5 focus:ring-0">
+                    {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if selected_month == m %}selected{% endif %}>
+                            {{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m-1] }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <select name="year" onchange="this.form.submit()" class="bg-slate-800 border-none text-xs text-white rounded-lg px-2.5 py-1.5 focus:ring-0 font-mono">
+                    {% for y in range(current_year - 2, current_year + 3) %}
+                        <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+
+            <!-- Export to CSV Button -->
+            <a href="{{ url_for('export_csv', month=selected_month, year=selected_year) }}" 
+               class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition-colors shadow-sm">
+                <i class="fa-solid fa-file-arrow-down text-indigo-400"></i>
+                <span>Export CSV</span>
+            </a>
+
+            <!-- Print Statement Button -->
+            <button onclick="window.print()" 
+                    class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition-colors shadow-sm">
+                <i class="fa-solid fa-print text-slate-400"></i>
+                <span>Print</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Monthly Summary Statement Metrics (from sp_GenerateMonthlyReport) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Gross Inflow -->
+        <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Income Inflow</span>
+            <div class="text-2xl font-extrabold text-emerald-400 font-mono mt-2">+${{ "%.2f"|format(summary.gross_income or 0) }}</div>
+            <div class="text-xs text-slate-500 mt-1">Total revenue collected</div>
+        </div>
+
+        <!-- Total Outflow -->
+        <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Expense Outflow</span>
+            <div class="text-2xl font-extrabold text-rose-400 font-mono mt-2">-${{ "%.2f"|format(summary.total_expenses or 0) }}</div>
+            <div class="text-xs text-slate-500 mt-1">{{ summary.total_transactions or 0 }} Transactions processed</div>
+        </div>
+
+        <!-- Net Savings -->
+        <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Net Monthly Savings</span>
+            <div class="text-2xl font-extrabold {% if (summary.net_savings or 0) >= 0 %}text-indigo-400{% else %}text-rose-400{% endif %} font-mono mt-2">
+                {% if (summary.net_savings or 0) >= 0 %}+{% endif %}${{ "%.2f"|format(summary.net_savings or 0) }}
+            </div>
+            <div class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+                <span class="text-indigo-300 font-bold font-mono">{{ summary.savings_rate_percentage or 0 }}%</span> of gross income saved
+            </div>
+        </div>
+
+        <!-- Subscription Burden -->
+        <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Subscription Load</span>
+            <div class="text-2xl font-extrabold text-violet-400 font-mono mt-2">${{ "%.2f"|format(summary.monthly_subscription_burden or 0) }}</div>
+            <div class="text-xs text-slate-500 mt-1">{{ summary.active_subscriptions_count or 0 }} Active recurring services</div>
+        </div>
+    </div>
+
+    <!-- Analytics Breakdown Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Category Spending Summary Table & Chart (7 cols) -->
+        <div class="lg:col-span-7 p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-white tracking-tight">Category-wise Spending Breakdown</h3>
+                        <p class="text-xs text-slate-400">Total expenditure grouped by spending category</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-950/60 text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-800">
+                            <tr>
+                                <th class="py-2.5 px-3">Category</th>
+                                <th class="py-2.5 px-3 text-center">Transactions</th>
+                                <th class="py-2.5 px-3 text-right">Total Spent</th>
+                                <th class="py-2.5 px-3 text-right">Expense Share</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60">
+                            {% if category_spending %}
+                                {% set exp_total = summary.total_expenses if (summary.total_expenses and summary.total_expenses > 0) else 1 %}
+                                {% for cs in category_spending %}
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="py-2.5 px-3 font-semibold text-white flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                        {{ cs.category_name }}
+                                    </td>
+                                    <td class="py-2.5 px-3 text-center font-mono text-slate-400">{{ cs.transaction_count }}</td>
+                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-rose-400">${{ "%.2f"|format(cs.total_spent) }}</td>
+                                    <td class="py-2.5 px-3 text-right font-mono text-slate-300">
+                                        {{ "%.1f"|format((cs.total_spent / exp_total) * 100) }}%
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-6 text-slate-500">No expenses recorded for this month.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Donut Visual (5 cols) -->
+        <div class="lg:col-span-5 p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm flex flex-col justify-between">
+            <div>
+                <h3 class="text-base font-bold text-white tracking-tight">Spending Distribution</h3>
+                <p class="text-xs text-slate-400">Proportional category expense allocation</p>
+            </div>
+
+            <div class="h-64 w-full relative flex items-center justify-center my-4">
+                {% if category_spending %}
+                    <canvas id="reportDonutChart"></canvas>
+                {% else %}
+                    <div class="text-center text-slate-500 text-xs">
+                        <i class="fa-solid fa-chart-pie text-3xl mb-2 text-slate-600 block"></i>
+                        No spending distribution data available.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Budget Performance Table (vw_BudgetUtilization) -->
+    <div class="rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-800">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-bullseye text-indigo-400"></i>
+                Monthly Budget Performance & Adherence
+            </h3>
+            <p class="text-xs text-slate-400">Evaluation against set spending thresholds and targets</p>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950/60 text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-800">
+                    <tr>
+                        <th class="py-3 px-4">Category</th>
+                        <th class="py-3 px-4 text-right">Limit Amount</th>
+                        <th class="py-3 px-4 text-right">Actual Spent</th>
+                        <th class="py-3 px-4 text-right">Remaining Variance</th>
+                        <th class="py-3 px-4 text-center">Utilization</th>
+                        <th class="py-3 px-4 text-center">Health Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% if budget_performance %}
+                        {% for bp in budget_performance %}
+                        <tr class="hover:bg-slate-800/40">
+                            <td class="py-3 px-4 font-bold text-white">{{ bp.category_name }}</td>
+                            <td class="py-3 px-4 text-right font-mono">${{ "%.2f"|format(bp.limit_amount) }}</td>
+                            <td class="py-3 px-4 text-right font-mono font-bold text-rose-400">${{ "%.2f"|format(bp.actual_spent) }}</td>
+                            <td class="py-3 px-4 text-right font-mono font-bold {% if bp.remaining_balance >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                ${{ "%.2f"|format(bp.remaining_balance) }}
+                            </td>
+                            <td class="py-3 px-4 text-center font-mono font-bold">{{ bp.utilization_percentage }}%</td>
+                            <td class="py-3 px-4 text-center">
+                                {% if bp.budget_status == 'Over Budget' %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">Over Budget</span>
+                                {% elif bp.budget_status == 'Critical' %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">Critical</span>
+                                {% elif bp.budget_status == 'Warning' %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Warning</span>
+                                {% else %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Normal</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-6 text-slate-500">No category budgets were defined for this monthly period.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Detailed Ledger Statement for Period -->
+    <div class="rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-800">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-indigo-400"></i>
+                Itemized Ledger Statement for Period
+            </h3>
+            <p class="text-xs text-slate-400">{{ period_transactions|length }} General ledger line items for {{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][selected_month-1] }} {{ selected_year }}</p>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950/60 text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-800">
+                    <tr>
+                        <th class="py-3 px-4 font-mono">Tx ID</th>
+                        <th class="py-3 px-4">Date</th>
+                        <th class="py-3 px-4">Description</th>
+                        <th class="py-3 px-4">Category</th>
+                        <th class="py-3 px-4">Payment Method</th>
+                        <th class="py-3 px-4 text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% if period_transactions %}
+                        {% for tx in period_transactions %}
+                        <tr class="hover:bg-slate-800/40">
+                            <td class="py-3 px-4 font-mono text-slate-500">#{{ tx.transaction_id }}</td>
+                            <td class="py-3 px-4 font-mono text-slate-300">{{ tx.transaction_date }}</td>
+                            <td class="py-3 px-4 font-bold text-white">{{ tx.description or tx.category_name }}</td>
+                            <td class="py-3 px-4 text-slate-300">{{ tx.category_name }}</td>
+                            <td class="py-3 px-4 text-slate-400">{{ tx.method_name }}</td>
+                            <td class="py-3 px-4 text-right font-mono font-bold {% if tx.transaction_type == 'Income' %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                {% if tx.transaction_type == 'Income' %}+{% else %}-{% endif %}${{ "%.2f"|format(tx.amount) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-6 text-slate-500">No ledger transactions recorded in this period.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const categoryData = {{ category_spending | tojson | safe }};
+        initCategoryDonutChart('reportDonutChart', categoryData);
+    });
+</script>
+{% endblock %}
+

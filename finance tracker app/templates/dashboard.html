@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Dashboard{% endblock %}
+{% block header_title %}Financial Overview{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. KPI CARDS SECTION (Powered by MySQL Stored Functions) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Monthly Gross Income Card -->
+        <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm relative overflow-hidden group hover:border-slate-700 transition-all">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Gross Income</span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-trend-up text-sm"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-extrabold text-white font-mono tracking-tight">${{ "%.2f"|format(gross_income) }}</div>
+                <div class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                    <span class="text-emerald-400 font-semibold"><i class="fa-solid fa-arrow-trend-up mr-0.5"></i> Live Inflow</span>
+                </div>
+            </div>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-colors"></div>
+        </div>
+
+        <!-- Monthly Total Expenses Card -->
+        <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm relative overflow-hidden group hover:border-slate-700 transition-all">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Total Expenses</span>
+                <div class="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-trend-down text-sm"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-extrabold text-white font-mono tracking-tight">${{ "%.2f"|format(total_expenses) }}</div>
+                <div class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                    <span class="text-rose-400 font-semibold"><i class="fa-solid fa-receipt mr-0.5"></i> Current Outflow</span>
+                </div>
+            </div>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-rose-500/5 rounded-full blur-xl group-hover:bg-rose-500/10 transition-colors"></div>
+        </div>
+
+        <!-- Net Savings Card -->
+        <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm relative overflow-hidden group hover:border-slate-700 transition-all">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Net Monthly Savings</span>
+                <div class="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                    <i class="fa-solid fa-piggy-bank text-sm"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-extrabold {% if net_savings >= 0 %}text-indigo-400{% else %}text-rose-400{% endif %} font-mono tracking-tight">
+                    ${{ "%.2f"|format(net_savings) }}
+                </div>
+                <div class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold {% if savings_rate >= 20 %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% else %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% endif %}">
+                        {{ savings_rate }}% Rate
+                    </span>
+                    <span>Savings Target</span>
+                </div>
+            </div>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-indigo-500/5 rounded-full blur-xl group-hover:bg-indigo-500/10 transition-colors"></div>
+        </div>
+
+        <!-- Active Subscription Burden Card -->
+        <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm relative overflow-hidden group hover:border-slate-700 transition-all">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Subscription Load</span>
+                <div class="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
+                    <i class="fa-solid fa-repeat text-sm"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-extrabold text-white font-mono tracking-tight">${{ "%.2f"|format(monthly_sub_burden) }}<span class="text-xs text-slate-400 font-sans font-normal">/mo</span></div>
+                <div class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                    <span class="text-violet-400 font-semibold">{{ active_subs_count }} Active Services</span>
+                    <span>monitored</span>
+                </div>
+            </div>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-violet-500/5 rounded-full blur-xl group-hover:bg-violet-500/10 transition-colors"></div>
+        </div>
+    </div>
+
+    <!-- 2. UPCOMING RENEWALS ALERT (Next 7 Days) -->
+    {% if upcoming_renewals %}
+    <div class="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-900/90 to-slate-900 border border-amber-500/30 shadow-lg">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-bell text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        Upcoming Subscription Renewals Due within 7 Days
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            {{ upcoming_renewals|length }} Pending
+                        </span>
+                    </h3>
+                    <p class="text-xs text-slate-400">Record renewal payments to advance renewal dates and link transaction ledger automatically.</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                {% for sub in upcoming_renewals %}
+                <div class="flex items-center gap-3 p-2 px-3 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs">
+                    <div>
+                        <div class="font-semibold text-white">{{ sub.subscription_name }}</div>
+                        <div class="text-slate-400 font-mono">${{ "%.2f"|format(sub.amount) }} &bull; <span class="text-amber-400 font-semibold">{{ sub.days_left }} days left</span></div>
+                    </div>
+                    <button onclick="openPayModal('{{ sub.subscription_id }}', '{{ sub.subscription_name }}', '{{ sub.amount }}')" 
+                            class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow transition-all flex items-center gap-1">
+                        <i class="fa-solid fa-bolt"></i> Pay Now
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 3. ANALYTICS & CHARTS ROW -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Cash Flow Bar Chart (8 cols) -->
+        <div class="lg:col-span-8 p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-base font-bold text-white tracking-tight">Income vs Expenses (6-Month Trend)</h3>
+                    <p class="text-xs text-slate-400">Monthly financial comparison based on general ledger transactions.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="flex items-center gap-1.5 text-xs text-slate-400">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Income
+                    </span>
+                    <span class="flex items-center gap-1.5 text-xs text-slate-400 ml-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Expense
+                    </span>
+                </div>
+            </div>
+
+            <div class="h-72 w-full relative">
+                <canvas id="cashFlowChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Category Spending Donut (4 cols) -->
+        <div class="lg:col-span-4 p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="mb-4">
+                <h3 class="text-base font-bold text-white tracking-tight">Current Month Spending</h3>
+                <p class="text-xs text-slate-400">Real-time category spending distribution</p>
+            </div>
+
+            <div class="h-64 w-full relative flex items-center justify-center">
+                {% if category_spending %}
+                    <canvas id="categoryDonutChart"></canvas>
+                {% else %}
+                    <div class="text-center p-6 text-slate-300 text-xs">
+                        <i class="fa-solid fa-chart-pie text-3xl mb-2 text-slate-600"></i>
+                        <p>No expense transactions recorded this month.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. BOTTOM ROW: BUDGET UTILIZATION & RECENT TRANSACTIONS -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Budget Utilization Widget (6 cols) -->
+        <div class="lg:col-span-6 p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-base font-bold text-white tracking-tight">Budget Utilization</h3>
+                    <p class="text-xs text-slate-400">Current monthly limit utilization</p>
+                </div>
+                <a href="{{ url_for('budgets') }}" class="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
+                    Manage Budgets &rarr;
+                </a>
+            </div>
+
+            <div class="space-y-4">
+                {% if budget_utilization %}
+                    {% for b in budget_utilization %}
+                    <div class="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                        <div class="flex items-center justify-between text-xs mb-1.5">
+                            <span class="font-bold text-white">{{ b.category_name }}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono text-slate-300">${{ "%.2f"|format(b.actual_spent) }} / ${{ "%.2f"|format(b.limit_amount) }}</span>
+                                {% if b.budget_status == 'Over Budget' %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">Over Budget</span>
+                                {% elif b.budget_status == 'Critical' %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">Critical ({{ b.utilization_percentage }}%)</span>
+                                {% elif b.budget_status == 'Warning' %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Warning ({{ b.utilization_percentage }}%)</span>
+                                {% else %}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Normal ({{ b.utilization_percentage }}%)</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-slate-700/60 h-2 rounded-full overflow-hidden">
+                            {% set pct = b.utilization_percentage if b.utilization_percentage <= 100 else 100 %}
+                            {% set bar_color = 'bg-emerald-500' %}
+                            {% if b.utilization_percentage > 100 %}
+                                {% set bar_color = 'bg-rose-500' %}
+                            {% elif b.utilization_percentage >= 90 %}
+                                {% set bar_color = 'bg-rose-400' %}
+                            {% elif b.utilization_percentage >= 70 %}
+                                {% set bar_color = 'bg-amber-400' %}
+                            {% endif %}
+                            <div class="{{ bar_color }} h-full rounded-full transition-all duration-500" style="width: {{ pct }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-8 text-slate-300 text-xs">
+                        <i class="fa-solid fa-wallet text-2xl mb-2 text-slate-600"></i>
+                        <p>No budgets configured for this month. <a href="{{ url_for('budgets') }}" class="text-indigo-400 underline">Set one up now</a>.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Transactions Ledger (6 cols) -->
+        <div class="lg:col-span-6 p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-base font-bold text-white tracking-tight">Recent Transactions</h3>
+                    <p class="text-xs text-slate-400">Latest double-entry general ledger activity</p>
+                </div>
+                <a href="{{ url_for('transactions') }}" class="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
+                    View Ledger &rarr;
+                </a>
+            </div>
+
+            <div class="divide-y divide-slate-800/80">
+                {% if recent_transactions %}
+                    {% for tx in recent_transactions %}
+                    <div class="py-3 flex items-center justify-between gap-3 text-xs">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-8 h-8 rounded-lg {% if tx.transaction_type == 'Income' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20{% else %}bg-rose-500/10 text-rose-400 border border-rose-500/20{% endif %} flex items-center justify-center shrink-0">
+                                {% if tx.transaction_type == 'Income' %}
+                                    <i class="fa-solid fa-arrow-down-left"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-arrow-up-right"></i>
+                                {% endif %}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-slate-200 truncate">{{ tx.description or tx.category_name }}</div>
+                                <div class="text-slate-400 text-[11px] flex items-center gap-2">
+                                    <span>{{ tx.category_name }}</span>
+                                    <span>&bull;</span>
+                                    <span>{{ tx.method_name }}</span>
+                                    <span>&bull;</span>
+                                    <span class="font-mono">{{ tx.transaction_date }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-right shrink-0">
+                            <div class="font-mono font-bold text-sm {% if tx.transaction_type == 'Income' %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                {% if tx.transaction_type == 'Income' %}+{% else %}-{% endif %}${{ "%.2f"|format(tx.amount) }}
+                            </div>
+                            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{{ tx.transaction_type }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-8 text-slate-300 text-xs">
+                        <i class="fa-solid fa-receipt text-2xl mb-2 text-slate-600"></i>
+                        <p>No recent transactions logged yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Modal: Pay Subscription / Execute Procedure sp_RecordSubscriptionPayment -->
+<div id="paySubscriptionModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+    <div class="modal-backdrop fixed inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
+    <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl z-10">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-bolt text-sm"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Record Subscription Payment</h3>
+            </div>
+            <button onclick="closeModal('paySubscriptionModal')" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div class="mt-4 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between">
+            <div>
+                <div id="pay_sub_name" class="font-bold text-white text-sm">Subscription</div>
+                <div class="text-xs text-slate-400">Advances next renewal date automatically</div>
+            </div>
+            <div id="pay_sub_amount" class="text-lg font-extrabold text-amber-400 font-mono">$0.00</div>
+        </div>
+
+        <form id="paySubscriptionForm" method="POST" class="mt-4 space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Payment Method</label>
+                <select name="payment_method_id" required
+                        class="w-full bg-slate-800/70 border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm">
+                    {% for pm in payment_methods %}
+                        <option value="{{ pm.payment_method_id }}">{{ pm.method_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Expense Category</label>
+                <select name="category_id" required
+                        class="w-full bg-slate-800/70 border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm">
+                    {% for c in categories %}
+                        {% if c.category_type == 'Expense' %}
+                            <option value="{{ c.category_id }}" {% if 'Entertainment' in c.category_name %}selected{% endif %}>
+                                {{ c.category_name }}
+                            </option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Payment Date</label>
+                <input type="date" name="payment_date" value="{{ current_date_str }}" required
+                       class="w-full bg-slate-800/70 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono focus:outline-none focus:border-indigo-500 text-sm">
+            </div>
+
+            <p class="text-[11px] text-slate-400">
+                <i class="fa-solid fa-shield-halved text-indigo-400 mr-1"></i> Payment will be recorded in your ledger and the renewal date updated automatically.
+            </p>
+
+            <div class="pt-2 flex justify-end gap-3">
+                <button type="button" onclick="closeModal('paySubscriptionModal')" class="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-sm font-semibold">Cancel</button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-md transition-all">Confirm Payment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize Cash Flow Trend Chart
+        const trendData = {{ trend_data | tojson | safe }};
+        initCashFlowChart('cashFlowChart', trendData);
+
+        // Initialize Category Spending Donut Chart
+        const categoryData = {{ category_spending | tojson | safe }};
+        initCategoryDonutChart('categoryDonutChart', categoryData);
+    });
+</script>
+{% endblock %}
+

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In or Register{% endblock %}
+
+{% block content %}
+<div class="min-h-[85vh] flex items-center justify-center -m-6 p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/40 via-slate-950 to-slate-950">
+    <div class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl overflow-hidden">
+        
+        <!-- Left Side: Platform Features & Highlights -->
+        <div class="lg:col-span-5 p-8 lg:p-10 bg-gradient-to-br from-indigo-900/50 via-slate-900/80 to-slate-950 border-b lg:border-b-0 lg:border-r border-slate-800/80 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white shadow-xl shadow-indigo-500/30">
+                        <i class="fa-solid fa-vault text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-extrabold text-white tracking-tight">FinTrack Pro</h2>
+                        <p class="text-xs text-indigo-300 font-semibold uppercase tracking-wider">Smart Financial Platform</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 space-y-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="fa-solid fa-chart-line text-xs"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-slate-200">Real-Time Ledger & Tracking</div>
+                            <div class="text-xs text-slate-400">Track all income and expenses with automatic cash flow summaries.</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="fa-solid fa-bullseye text-xs"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-slate-200">Intelligent Budget Ceilings</div>
+                            <div class="text-xs text-slate-400">Set category limits and stay informed with dynamic utilization progress.</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="fa-solid fa-repeat text-xs"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-slate-200">Automated Subscription Monitor</div>
+                            <div class="text-xs text-slate-400">Manage recurring services, renewal schedules, and avoid surprise fees.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo Credentials Box -->
+            <div class="mt-8 p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+                <div class="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
+                    <i class="fa-solid fa-key"></i> Quick Sign-In Accounts
+                </div>
+                <div class="space-y-2 text-xs">
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                        <div>
+                            <span class="font-semibold text-slate-200">User:</span> <code class="text-indigo-300 font-mono">alex@example.com</code>
+                        </div>
+                        <span class="text-slate-400 font-mono">Password123!</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                        <div>
+                            <span class="font-semibold text-slate-200">Admin:</span> <code class="text-purple-300 font-mono">admin@example.com</code>
+                        </div>
+                        <span class="text-slate-400 font-mono">Admin123!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Login & Register Tabs -->
+        <div class="lg:col-span-7 p-8 lg:p-12 flex flex-col justify-center">
+            
+            <!-- Tab Buttons -->
+            <div class="flex items-center bg-slate-950/60 p-1.5 rounded-2xl border border-slate-800 mb-8 max-w-xs mx-auto w-full">
+                <button type="button" id="tabLoginBtn" onclick="switchAuthTab('login')" 
+                        class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-indigo-600 text-white shadow-md">
+                    Sign In
+                </button>
+                <button type="button" id="tabRegisterBtn" onclick="switchAuthTab('register')" 
+                        class="flex-1 py-2 text-xs font-bold rounded-xl transition-all text-slate-400 hover:text-white">
+                    Create Account
+                </button>
+            </div>
+
+            <!-- Sign In Form -->
+            <div id="loginFormContainer" class="space-y-5">
+                <div>
+                    <h3 class="text-2xl font-extrabold text-white">Welcome back</h3>
+                    <p class="text-sm text-slate-400 mt-1">Sign in to manage your budget, expenses, and subscriptions.</p>
+                </div>
+
+                <form action="{{ url_for('login') }}" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Email Address</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
+                                <i class="fa-regular fa-envelope"></i>
+                            </span>
+                            <input type="email" name="email" value="alex@example.com" required 
+                                   class="w-full pl-10 pr-4 py-2.5 bg-slate-800/60 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Password</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
+                                <i class="fa-solid fa-lock"></i>
+                            </span>
+                            <input type="password" name="password" value="Password123!" required 
+                                   class="w-full pl-10 pr-4 py-2.5 bg-slate-800/60 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm font-mono">
+                        </div>
+                    </div>
+
+                    <button type="submit" 
+                            class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2">
+                        <span>Sign In to Dashboard</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Register Form (Hidden by default) -->
+            <div id="registerFormContainer" class="hidden space-y-5">
+                <div>
+                    <h3 class="text-2xl font-extrabold text-white">Create your account</h3>
+                    <p class="text-sm text-slate-400 mt-1">Get started with automated financial ledgers and views.</p>
+                </div>
+
+                <form action="{{ url_for('register') }}" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Full Name</label>
+                        <input type="text" name="reg_name" placeholder="John Doe" required 
+                               class="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Email Address</label>
+                        <input type="email" name="reg_email" placeholder="john@example.com" required 
+                               class="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Password</label>
+                            <input type="password" name="reg_password" placeholder="At least 6 chars" required 
+                                   class="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Confirm Password</label>
+                            <input type="password" name="reg_confirm_password" placeholder="Re-type password" required 
+                                   class="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm font-mono">
+                        </div>
+                    </div>
+
+                    <p class="text-[11px] text-slate-500 leading-normal">
+                        Your account will be pre-configured with standard categories and payment instruments ready for immediate tracking.
+                    </p>
+
+                    <button type="submit" 
+                            class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2">
+                        <span>Create Account</span>
+                        <i class="fa-solid fa-user-plus text-xs"></i>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchAuthTab(tab) {
+        const loginContainer = document.getElementById('loginFormContainer');
+        const registerContainer = document.getElementById('registerFormContainer');
+        const loginBtn = document.getElementById('tabLoginBtn');
+        const registerBtn = document.getElementById('tabRegisterBtn');
+
+        if (tab === 'login') {
+            loginContainer.classList.remove('hidden');
+            registerContainer.classList.add('hidden');
+            loginBtn.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-indigo-600 text-white shadow-md";
+            registerBtn.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all text-slate-400 hover:text-white";
+        } else {
+            loginContainer.classList.add('hidden');
+            registerContainer.classList.remove('hidden');
+            registerBtn.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-indigo-600 text-white shadow-md";
+            loginBtn.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all text-slate-400 hover:text-white";
+        }
+    }
+</script>
+{% endblock %}
+

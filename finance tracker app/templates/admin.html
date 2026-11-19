@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}System Administration Portal{% endblock %}
+{% block header_title %}System Admin Portal{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Description -->
+    <div>
+        <h2 class="text-lg font-bold text-white tracking-tight">Platform Overview & Metrics</h2>
+        <p class="text-xs text-slate-400">High-level platform activity, account registry, and usage telemetry.</p>
+    </div>
+
+    <!-- System Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Registered Users</span>
+            <div class="text-2xl font-extrabold text-white font-mono mt-1">{{ stats.users_count or 0 }}</div>
+            <div class="text-[11px] text-slate-500 mt-1">Active member accounts</div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Transactions</span>
+            <div class="text-2xl font-extrabold text-indigo-400 font-mono mt-1">{{ stats.tx_count or 0 }}</div>
+            <div class="text-[11px] text-slate-500 mt-1">Lifetime transactions</div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Subscriptions</span>
+            <div class="text-2xl font-extrabold text-violet-400 font-mono mt-1">{{ stats.sub_count or 0 }}</div>
+            <div class="text-[11px] text-slate-500 mt-1">Monitored services</div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Budget Ceilings</span>
+            <div class="text-2xl font-extrabold text-emerald-400 font-mono mt-1">{{ stats.budget_count or 0 }}</div>
+            <div class="text-[11px] text-slate-500 mt-1">Configured targets</div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Executed Renewals</span>
+            <div class="text-2xl font-extrabold text-amber-400 font-mono mt-1">{{ stats.sub_payments_count or 0 }}</div>
+            <div class="text-[11px] text-slate-500 mt-1">Recorded renewals</div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-users text-indigo-400"></i>
+                User Account Directory
+            </h3>
+            <span class="text-xs text-slate-500 font-mono">{{ users|length }} User Accounts</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950/60 text-[11px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-800">
+                    <tr>
+                        <th class="py-3 px-4 font-mono">User ID</th>
+                        <th class="py-3 px-4">Name</th>
+                        <th class="py-3 px-4">Email</th>
+                        <th class="py-3 px-4">Role</th>
+                        <th class="py-3 px-4 font-mono text-center">Transactions Logged</th>
+                        <th class="py-3 px-4 font-mono text-center">Subscriptions Tracked</th>
+                        <th class="py-3 px-4">Created At</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for u in users %}
+                    <tr class="hover:bg-slate-800/40">
+                        <td class="py-3 px-4 font-mono text-slate-500">#USR-{{ u.user_id }}</td>
+                        <td class="py-3 px-4 font-bold text-white">{{ u.name }}</td>
+                        <td class="py-3 px-4 font-mono text-indigo-300">{{ u.email }}</td>
+                        <td class="py-3 px-4">
+                            {% if u.role == 'Admin' %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Admin</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700/50 text-slate-300 border border-slate-700">User</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-center font-mono font-bold">{{ u.total_transactions }}</td>
+                        <td class="py-3 px-4 text-center font-mono font-bold">{{ u.total_subscriptions }}</td>
+                        <td class="py-3 px-4 text-slate-400 font-mono text-[11px]">{{ u.created_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+

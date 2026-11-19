@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Budget Management & Utilization{% endblock %}
+{% block header_title %}Budget Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Action & Period Selector Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-bold text-white tracking-tight">Monthly Category Spending Limits</h2>
+            <p class="text-xs text-slate-400">Track and optimize category spending against monthly targets in real-time.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Period Selector Form -->
+            <form method="GET" action="{{ url_for('budgets') }}" class="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800">
+                <select name="month" onchange="this.form.submit()" class="bg-slate-800 border-none text-xs text-white rounded-lg px-2.5 py-1.5 focus:ring-0">
+                    {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if selected_month == m %}selected{% endif %}>
+                            {{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m-1] }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <select name="year" onchange="this.form.submit()" class="bg-slate-800 border-none text-xs text-white rounded-lg px-2.5 py-1.5 focus:ring-0 font-mono">
+                    {% for y in range(current_year - 2, current_year + 3) %}
+                        <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+
+            <button onclick="openModal('addBudgetModal')" 
+                    class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>Set Budget</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Period KPI Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Allocated</div>
+            <div class="text-2xl font-extrabold text-white font-mono mt-1">${{ "%.2f"|format(total_budgeted) }}</div>
+            <div class="text-[11px] text-slate-500 mt-1">{{ budgets|length }} Active Category Budgets</div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Actual Spent</div>
+            <div class="text-2xl font-extrabold text-rose-400 font-mono mt-1">${{ "%.2f"|format(total_spent) }}</div>
+            <div class="text-[11px] text-slate-500 mt-1">Aggregated expense ledger</div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Remaining Buffer</div>
+            {% set rem = total_budgeted - total_spent %}
+            <div class="text-2xl font-extrabold {% if rem >= 0 %}text-emerald-400{% else %}text-rose-500{% endif %} font-mono mt-1">
+                ${{ "%.2f"|format(rem) }}
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">Across all categories</div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Overall Utilization</div>
+            <div class="text-2xl font-extrabold {% if overall_utilization > 100 %}text-rose-400{% elif overall_utilization >= 80 %}text-amber-400{% else %}text-indigo-400{% endif %} font-mono mt-1">
+                {{ overall_utilization }}%
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">Limit consumption rate</div>
+        </div>
+    </div>
+
+    <!-- Budget Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% if budgets %}
+            {% for b in budgets %}
+            <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm flex flex-col justify-between hover:border-slate-700 transition-all">
+                <div>
+                    <!-- Header -->
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-300">
+                                <i class="fa-solid fa-layer-group text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white text-base">{{ b.category_name }}</h3>
+                                <div class="text-[11px] text-slate-400 font-mono">Period: {{ b.month }}/{{ b.year }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Status Badge -->
+                        <div>
+                            {% if b.budget_status == 'Over Budget' %}
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Over Budget
+                                </span>
+                            {% elif b.budget_status == 'Critical' %}
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-exclamation"></i> Critical ({{ b.utilization_percentage }}%)
+                                </span>
+                            {% elif b.budget_status == 'Warning' %}
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-notch"></i> Warning ({{ b.utilization_percentage }}%)
+                                </span>
+                            {% else %}
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-check"></i> Healthy ({{ b.utilization_percentage }}%)
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="my-4">
+                        <div class="flex items-center justify-between text-xs mb-1.5">
+                            <span class="text-slate-400 font-medium">Spent: <span class="text-white font-mono font-bold">${{ "%.2f"|format(b.actual_spent) }}</span></span>
+                            <span class="text-slate-400 font-medium">Limit: <span class="text-white font-mono font-bold">${{ "%.2f"|format(b.limit_amount) }}</span></span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                            {% set pct = b.utilization_percentage if b.utilization_percentage <= 100 else 100 %}
+                            {% set bar_color = 'bg-emerald-500' %}
+                            {% if b.utilization_percentage > 100 %}
+                                {% set bar_color = 'bg-rose-500' %}
+                            {% elif b.utilization_percentage >= 90 %}
+                                {% set bar_color = 'bg-rose-400' %}
+                            {% elif b.utilization_percentage >= 70 %}
+                                {% set bar_color = 'bg-amber-400' %}
+                            {% endif %}
+                            <div class="{{ bar_color }} h-full rounded-full transition-all duration-500" style="width: {{ pct }}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Pill -->
+                    <div class="grid grid-cols-2 gap-2 p-3 rounded-xl bg-slate-800/40 border border-slate-700/40 text-xs">
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Remaining Balance</span>
+                            <span class="font-mono font-bold text-sm {% if b.remaining_balance >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                ${{ "%.2f"|format(b.remaining_balance) }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Utilization Rate</span>
+                            <span class="font-mono font-bold text-sm text-slate-200">
+                                {{ b.utilization_percentage }}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-end gap-2">
+                    <button onclick="openEditBudgetModal('{{ b.budget_id }}', '{{ b.category_name }}', '{{ b.limit_amount }}', '{{ b.month }}', '{{ b.year }}')"
+                            class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-pen-to-square text-xs"></i> Edit Limit
+                    </button>
+                    <form action="{{ url_for('delete_budget', budget_id=b.budget_id) }}" method="POST"
+                          onsubmit="return confirm('Remove budget limit for {{ b.category_name }}?');" class="inline">
+                        <input type="hidden" name="month" value="{{ selected_month }}">
+                        <input type="hidden" name="year" value="{{ selected_year }}">
+                        <button type="submit" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 text-xs font-semibold transition-colors flex items-center gap-1">
+                            <i class="fa-regular fa-trash-can text-xs"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-span-full p-12 text-center rounded-2xl bg-slate-900/60 border border-slate-800">
+                <i class="fa-solid fa-wallet text-4xl text-slate-600 mb-3 block"></i>
+                <h3 class="text-base font-bold text-white">No Budgets Set for {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][selected_month-1] }} {{ selected_year }}</h3>
+                <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Set category spending limits to track real-time utilization against your income and expenses.</p>
+                <button onclick="openModal('addBudgetModal')" class="mt-4 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow transition-all">
+                    Configure Category Budget
+                </button>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Modal: Add Budget -->
+<div id="addBudgetModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+    <div class="modal-backdrop fixed inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
+    <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl z-10">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-wallet text-sm"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Set Category Spending Limit</h3>
+            </div>
+            <button onclick="closeModal('addBudgetModal')" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('add_budget') }}" method="POST" class="mt-4 space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Expense Category</label>
+                <select name="category_id" required
+                        class="w-full bg-slate-800/70 border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm">
+                    {% for ec in expense_categories %}
+                        <option value="{{ ec.category_id }}">{{ ec.category_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Month</label>
+                    <select name="month" class="w-full bg-slate-800/70 border border-slate-700 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm">
+                        {% for m in range(1, 13) %}
+                            <option value="{{ m }}" {% if selected_month == m %}selected{% endif %}>
+                                {{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m-1] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Year</label>
+                    <input type="number" name="year" value="{{ selected_year }}" min="2000" max="2100" required
+                           class="w-full bg-slate-800/70 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono focus:outline-none focus:border-indigo-500 text-sm">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Spending Limit Amount ($)</label>
+                <input type="number" step="0.01" min="1.00" name="limit_amount" placeholder="e.g. 500.00" required
+                       class="w-full bg-slate-800/70 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono focus:outline-none focus:border-indigo-500 text-sm">
+            </div>
+
+            <p class="text-[11px] text-slate-400">
+                <i class="fa-solid fa-circle-check text-indigo-400 mr-1"></i> Sets the spending threshold for this category across the selected monthly period.
+            </p>
+
+            <div class="pt-2 flex justify-end gap-3">
+                <button type="button" onclick="closeModal('addBudgetModal')" class="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-sm font-semibold">Cancel</button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-md transition-all">Save Budget Limit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit Budget Limit -->
+<div id="editBudgetModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+    <div class="modal-backdrop fixed inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
+    <div class="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl z-10">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <h3 class="text-lg font-bold text-white">Edit Budget Limit</h3>
+            <button onclick="closeModal('editBudgetModal')" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form id="editBudgetForm" method="POST" class="mt-4 space-y-4">
+            <input type="hidden" name="month" id="edit_budget_month">
+            <input type="hidden" name="year" id="edit_budget_year">
+
+            <div class="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                <div class="text-xs text-slate-400 font-semibold uppercase">Category</div>
+                <div id="edit_budget_cat_name" class="font-bold text-white text-base mt-0.5">Category</div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">New Monthly Limit ($)</label>
+                <input type="number" step="0.01" min="1.00" name="limit_amount" id="edit_budget_limit" required
+                       class="w-full bg-slate-800/70 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono focus:outline-none focus:border-indigo-500 text-sm">
+            </div>
+
+            <div class="pt-2 flex justify-end gap-3">
+                <button type="button" onclick="closeModal('editBudgetModal')" class="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-sm font-semibold">Cancel</button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-md transition-all">Update Limit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
